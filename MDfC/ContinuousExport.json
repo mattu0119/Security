@@ -1,0 +1,99 @@
+{
+    "location": "westus2",
+    "properties": {
+        "description": "",
+        "isEnabled": true,
+        "scopes": [
+            {
+                "description": "scope for subscription yourSubscription",
+                "scopePath": "/subscriptions/{{subscriptionId}}"
+            }
+        ],
+        "sources": [
+            {
+                "eventSource": "Assessments",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "AssessmentsSnapshot",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "SubAssessments"
+            },
+            {
+                "eventSource": "SubAssessmentsSnapshot"
+            },
+            {
+                "eventSource": "SecureScores"
+            },
+            {
+                "eventSource": "SecureScoresSnapshot"
+            },
+            {
+                "eventSource": "SecureScoreControls"
+            },
+            {
+                "eventSource": "SecureScoreControlsSnapshot"
+            },
+            {
+                "eventSource": "RegulatoryComplianceAssessment",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "id",
+                                "propertyType": "String",
+                                "expectedValue": "Azure-Security-Benchmark",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "RegulatoryComplianceAssessmentSnapshot",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "id",
+                                "propertyType": "String",
+                                "expectedValue": "Azure-Security-Benchmark",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "actions": [
+            {
+                "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourcegroups/{{resoueceGroupName}}/providers/microsoft.operationalinsights/workspaces/{{workspaceid}}",
+                "actionType": "Workspace"
+            }
+        ]
+    }
+}
