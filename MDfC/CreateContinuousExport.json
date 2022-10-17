@@ -1,5 +1,5 @@
 {
-    "location": "westus2",
+    "location": "{{location}}",
     "properties": {
         "description": "Test for additional Continuous Exports",
         "isEnabled": true,
