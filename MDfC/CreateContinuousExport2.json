@@ -1,0 +1,210 @@
+{
+    "location": "westus2",
+    "properties": {
+        "description": "Test for additional Continuous Export 2",
+        "isEnabled": true,
+        "scopes": [
+            {
+                "description": "scope for subscription yourSubscription",
+                "scopePath": "/subscriptions/{{subscriptionId}}"
+            }
+        ],
+        "sources": [
+            {
+                "eventSource": "Alerts",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "AlertDisplayName",
+                                "propertyType": "String",
+                                "expectedValue": "Unusual number of failed sign-in attempts",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "Assessments",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "AssessmentsSnapshot",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "SubAssessments"
+            },
+            {
+                "eventSource": "SubAssessmentsSnapshot"
+            },
+            {
+                "eventSource": "SecureScores"
+            },
+            {
+                "eventSource": "SecureScoresSnapshot"
+            },
+            {
+                "eventSource": "SecureScoreControls"
+            },
+            {
+                "eventSource": "SecureScoreControlsSnapshot"
+            },
+            {
+                "eventSource": "RegulatoryComplianceAssessment"
+            },
+            {
+                "eventSource": "RegulatoryComplianceAssessmentSnapshot"
+            },
+            {
+                "eventSource": "RegulatoryComplianceAssessment",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.state",
+                                "propertyType": "String",
+                                "expectedValue": "failed",
+                                "operator": "Equals"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "Alerts",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "Version",
+                                "propertyType": "String",
+                                "expectedValue": "3.",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "Assessments",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.status.code",
+                                "propertyType": "String",
+                                "expectedValue": "unhealthy",
+                                "operator": "Contains"
+                            },
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    },
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.status.code",
+                                "propertyType": "String",
+                                "expectedValue": "notapplicable",
+                                "operator": "Contains"
+                            },
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "Assessments",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.status.code",
+                                "propertyType": "String",
+                                "expectedValue": "notapplicable",
+                                "operator": "Contains"
+                            },
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    },
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.status.code",
+                                "propertyType": "String",
+                                "expectedValue": "unhealthy",
+                                "operator": "Contains"
+                            },
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "eventSource": "Assessments",
+                "ruleSets": [
+                    {
+                        "rules": [
+                            {
+                                "propertyJPath": "properties.status.code",
+                                "propertyType": "String",
+                                "expectedValue": "unhealthy",
+                                "operator": "Contains"
+                            },
+                            {
+                                "propertyJPath": "type",
+                                "propertyType": "String",
+                                "expectedValue": "Microsoft.Security/assessments",
+                                "operator": "Contains"
+                            }
+                        ]
+                    }
+                ]
+            }
+
+        ]
+    }
+}
