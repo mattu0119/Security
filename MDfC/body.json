@@ -1,0 +1,119 @@
+{
+    "location": "westus2",
+    "etag": "195a64a1-5869-4b41-96ba-4b45d62914b3",
+    "properties": {
+      "scopes": [
+        {
+          "scopePath": "/subscriptions/d023600f-7997-4b2d-9373-c7596931cc21",
+          "description": "scope for /subscriptions/d023600f-7997-4b2d-9373-c7596931cc21"
+        }
+      ],
+      "actions": [
+        {
+          "actionType": "Workspace",
+          "workspaceResourceId": "/subscriptions/d023600f-7997-4b2d-9373-c7596931cc21/resourceGroups/rg-log-wus2/providers/Microsoft.OperationalInsights/workspaces/log5-wus2"
+        }
+      ],
+      "isEnabled": true,
+      "sources": [
+        {
+          "EventSource": "Assessments",
+          "RuleSets": [
+            {
+              "Rules": [
+                {
+                  "ExpectedValue": "Microsoft.Security/assessments",
+                  "PropertyJPath": "type",
+                  "PropertyType": "String",
+                  "operator": "Contains"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventSource": "AssessmentsSnapshot",
+          "RuleSets": [
+            {
+              "Rules": [
+                {
+                  "ExpectedValue": "Microsoft.Security/assessments",
+                  "PropertyJPath": "type",
+                  "PropertyType": "String",
+                  "operator": "Contains"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventSource": "SubAssessments",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "SubAssessmentsSnapshot",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "Alerts",
+          "RuleSets": [
+            {
+              "Rules": [
+                {
+                  "ExpectedValue": "low",
+                  "PropertyJPath": "Severity",
+                  "PropertyType": "String",
+                  "operator": "Equals"
+                },
+                {
+                  "ExpectedValue": "medium",
+                  "PropertyJPath": "Severity",
+                  "PropertyType": "String",
+                  "operator": "Equals"
+                },
+                {
+                  "ExpectedValue": "informational",
+                  "PropertyJPath": "Severity",
+                  "PropertyType": "String",
+                  "operator": "Equals"
+                },
+                {
+                  "ExpectedValue": "high",
+                  "PropertyJPath": "Severity",
+                  "PropertyType": "String",
+                  "operator": "Equals"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "EventSource": "SecureScores",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "SecureScoresSnapshot",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "SecureScoreControls",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "SecureScoreControlsSnapshot",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "RegulatoryComplianceAssessment",
+          "RuleSets": null
+        },
+        {
+          "EventSource": "RegulatoryComplianceAssessmentSnapshot",
+          "RuleSets": null
+        }
+      ],
+      "description": "1014test01"
+    },
+    "tags": {}
+  }
+  

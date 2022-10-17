@@ -1,0 +1,17 @@
+{
+    "location": "westus2",
+    "properties": {
+      "scopes": [
+        {
+          "scopePath": "/subscriptions/{{subscriptionId}}",
+          "description": "scope for /subscriptions/{{subscriptionId}}"
+        }
+      ],
+      "actions": [
+        {
+          "actionType": "Workspace",
+          "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourceGroups/{{resourceGroupName}}/providers/Microsoft.OperationalInsights/workspaces/log-wus2"
+        }
+    ]
+    }
+}
