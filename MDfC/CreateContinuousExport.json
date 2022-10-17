@@ -91,7 +91,7 @@
         ],
         "actions": [
             {
-                "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourcegroups/{{resoueceGroupName}}/providers/microsoft.operationalinsights/workspaces/{{workspaceis}}",
+                "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourcegroups/{{resourceGroupName}}/providers/microsoft.operationalinsights/workspaces/{{workspaces}}",
                 "actionType": "Workspace"
             }
         ]
