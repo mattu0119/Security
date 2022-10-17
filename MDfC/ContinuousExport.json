@@ -1,7 +1,7 @@
 {
     "location": "westus2",
     "properties": {
-        "description": "",
+        "description": "Test for additional Continuous Exports",
         "isEnabled": true,
         "scopes": [
             {
@@ -91,7 +91,7 @@
         ],
         "actions": [
             {
-                "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourcegroups/{{resoueceGroupName}}/providers/microsoft.operationalinsights/workspaces/{{workspaceid}}",
+                "workspaceResourceId": "/subscriptions/{{subscriptionId}}/resourcegroups/{{resoueceGroupName}}/providers/microsoft.operationalinsights/workspaces/{{workspaceis}}",
                 "actionType": "Workspace"
             }
         ]
