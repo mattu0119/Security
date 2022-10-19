@@ -1,4 +1,5 @@
 # Available pricing Defender Plan Tier
+* 利用可能な有償プラン
 ```Json
 "name": "VirtualMachines",
 "name": "SqlServers",
