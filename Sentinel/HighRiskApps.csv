@@ -1,0 +1,6 @@
+﻿AppName,HighRisk,permissions
+EntApp01,No,"User.Read"
+MyApp,Yes,"Mail.ReadWrite"
+"purview-spn-user099",Yes,"Mail.ReadWrite"
+"Mail-forward",No,"User.Read"
+sharepointupload,Yes,"Tasks.Read.Shared"
