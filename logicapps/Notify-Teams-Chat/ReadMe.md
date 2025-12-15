@@ -3,6 +3,8 @@
 ## 1. このファイルについて（概要）
 このフォルダーにある ARM テンプレート `Notify-Teams-Chat.json` から、Microsoft Sentinel のインシデント作成をトリガーにして、Microsoft Teams のグループチャットを作成し、メッセージ投稿・インシデントタグ付けを行う Logic Apps（Playbook）をデプロイします。
 
+<img src="images/0.png" alt="Notify-Teams-Chat" width="600" />
+
 テンプレートは以下の 3 リソースを作成します。
 
 - `Microsoft.Logic/workflows`（Logic Apps: ワークフロー本体）
@@ -189,6 +191,7 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
 
