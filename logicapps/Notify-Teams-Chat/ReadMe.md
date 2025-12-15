@@ -50,7 +50,9 @@
 以下のボタンより、ARM テンプレートからロジックアプリを展開します。
 
 1. 以下のボタンをクリックしてデプロイ画面へ遷移します
+
 **ボタン**
+
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmattu0119%2FSecurity%2Frefs%2Fheads%2Fmain%2Flogicapps%2FNotify-Teams-Chat%2FNotify-Teams-Chat.json)
 
 ### 5.2 手動（テンプレート貼り付け）
@@ -202,5 +204,6 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
