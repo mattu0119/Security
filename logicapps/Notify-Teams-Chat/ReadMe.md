@@ -62,7 +62,7 @@
    - `ChatMembers`（必須）
 4. 「確認と作成」→「作成」でデプロイします
 
-![Notify-Teams-Chat](image/1.png)
+![Notify-Teams-Chat](images/1.png)
 
 ### 5.2 手動（テンプレート貼り付け）
 1. Azure Portal にサインインします
@@ -198,3 +198,4 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
