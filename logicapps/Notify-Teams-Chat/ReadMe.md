@@ -64,7 +64,7 @@
    - `ChatMembers`（必須）
 4. 「確認と作成」→「作成」でデプロイします
 
-<img src="images/1.png" alt="Notify-Teams-Chat"/>
+<img src="images/1.png" alt="Notify-Teams-Chat" width="800"/>
 
 ### 5.2 手動（テンプレート貼り付け）
 1. Azure Portal にサインインします
@@ -87,7 +87,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 2. `Teams-<PlaybookName>`（例: `Teams-Notify-Teams-chat`）の **API 接続** を開きます
 3. 「承認」/「編集 API 接続」などから、Teams にサインインして接続を確立します
 
-<img src="images/2.png" alt="Notify-Teams-Chat" width="600" />
+<img src="images/2.png" alt="Notify-Teams-Chat" width="800" />
 
 認証画面が表示されるので、Teams でチャットを作成するユーザーでサインインしてください。
 <img src="images/3.png" alt="Notify-Teams-Chat" width="400" />
@@ -102,7 +102,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 4. スコープに、Sentinel が展開されているサブスクリプション or リソースグループを指定します。
 5. 役割に [Sentinel レスポンダー] を選択し、保存します。
 
-<img src="images/4.png" alt="Notify-Teams-Chat" width="600" />
+<img src="images/4.png" alt="Notify-Teams-Chat" width="800" />
 
 ### 6.3 Microsoft Graph 呼び出し（Managed Identity）の権限（必要に応じて）
 ワークフロー内の HTTP アクションが `https://graph.microsoft.com/v1.0/users(...)` を `ManagedServiceIdentity` で呼び出します。
@@ -120,7 +120,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 2. **マネージド ID のサービス プリンシパル ID（Object ID）**
    - Azure Portal → 対象 Logic App → **ID（Identity）** → **システム割り当て** → **オブジェクト（プリンシパル）ID** を確認します。
 
-<img src="images/5.png" alt="Notify-Teams-Chat" width="600" />
+<img src="images/5.png" alt="Notify-Teams-Chat" width="800" />
 
 #### 6.3.2 権限を付与（AppRole assignment）
 Entra ID ユーザー情報の取得には `User.Read.All` が必要です。Managed ID に Azure ポータルから権限付与できないため、PowerShell 以下のコマンドを実行して権限を付与します。
@@ -191,6 +191,7 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
 
