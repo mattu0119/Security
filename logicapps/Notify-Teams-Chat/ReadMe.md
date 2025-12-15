@@ -88,7 +88,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 <img src="images/2.png" alt="Notify-Teams-Chat" width="600" />
 
 認証画面が表示されるので、Teams でチャットを作成するユーザーでサインインしてください。
-<img src="images/3.png" alt="Notify-Teams-Chat" width="600" />
+<img src="images/3.png" alt="Notify-Teams-Chat" width="400" />
 
 ### 6.2 Sentinel コネクタ / 実行権限（確認）
 - テンプレートは `azuresentinel` 接続を **Managed Identity** で利用する構成です。
@@ -179,4 +179,5 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
