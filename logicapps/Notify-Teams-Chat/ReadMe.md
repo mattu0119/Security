@@ -47,17 +47,10 @@
 
 ## 5. 展開方法（Azure Portal）
 ### 5.1 Deploy to Azure ボタン（推奨）
-テンプレートを **インターネットから参照できる URL**（例: GitHub の raw URL）で公開している場合は、以下のボタンから Azure Portal の「カスタム テンプレート」作成画面へ直接遷移してデプロイできます。
+以下のボタンより、ARM テンプレートからロジックアプリを展開します。
 
-> 注意
-> - ボタン方式は、`Notify-Teams-Chat.json` が **HTTP/HTTPS でアクセス可能**であることが前提です（ローカル ファイルパスや認証が必要な URL では動作しません）。
-> - 公開リポジトリでない場合は、テンプレートを一時的に公開できる場所（例: 期限付き URL）へ置くか、後述の「5.2 手動（テンプレート貼り付け）」で展開してください。
-
-1. `＜RAW_TEMPLATE_URL＞` を、`Notify-Teams-Chat.json` の公開 URL に置き換えます
-2. 以下のボタンをクリックしてデプロイ画面へ遷移します
-
+1. 以下のボタンをクリックしてデプロイ画面へ遷移します
 **ボタン**
-
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmattu0119%2FSecurity%2Frefs%2Fheads%2Fmain%2Flogicapps%2FNotify-Teams-Chat%2FNotify-Teams-Chat.json)
 
 ### 5.2 手動（テンプレート貼り付け）
@@ -209,4 +202,5 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
