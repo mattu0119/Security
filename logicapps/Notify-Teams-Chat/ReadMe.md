@@ -62,6 +62,7 @@
    - `ChatMembers`（必須）
 4. 「確認と作成」→「作成」でデプロイします
 
+![Notify-Teams-Chat](image/1.png)
 
 ### 5.2 手動（テンプレート貼り付け）
 1. Azure Portal にサインインします
@@ -111,9 +112,13 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 
 ### 7.2 Sentinel コネクタ / 実行権限（確認）
 - テンプレートは `azuresentinel` 接続を **Managed Identity** で利用する構成です。
-- Logic App のシステム割り当てマネージド ID に対し、対象の Microsoft Sentinel（ワークスペース）で Playbook 実行に必要な RBAC が付与されていることを確認してください。
+- Logic Apps の Managed ID に付与した 「Sentinel レスポンダー」権限を利用し、インシデントにタグを追加します。
 
-> 具体的なロール名は運用（インシデント更新、エンティティ参照、タグ付け等）と組織ポリシーにより異なります。最小権限になるよう、Playbook が必要とする操作に合わせて付与してください。
+1. Logic Apps の ID より、システム割り当て Managed ID を確認します。
+2. `Azure ロールの割り当て` をクリックします。
+3. [ロールの割り当ての追加] をクリックします。
+4. スコープに、Sentinel が展開されているサブスクリプション or リソースグループを指定します。
+5. 役割に [Sentinel レスポンダー] を選択し、保存します。
 
 ### 7.3 Microsoft Graph 呼び出し（Managed Identity）の権限（必要に応じて）
 ワークフロー内の HTTP アクションが `https://graph.microsoft.com/v1.0/users(...)` を `ManagedServiceIdentity` で呼び出します。
@@ -127,31 +132,12 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 > - Microsoft Graph PowerShell SDK を未導入の場合は、事前にインストールしてください（例: `Install-Module Microsoft.Graph -Scope CurrentUser`）。
 
 #### 7.3.1 事前にメモする値
-1. **Tenant ID**（テナント ID）
+1. Microsoft Entra の **Tenant ID**（テナント ID）
 2. **マネージド ID のサービス プリンシパル ID（Object ID）**
    - Azure Portal → 対象 Logic App → **ID（Identity）** → **システム割り当て** → **オブジェクト（プリンシパル）ID** を確認します。
 
-スクリーンショット例（差し替え用）:
-
-> このリポジトリ（フォルダー）では、スクリーンショットを `images` 配下に置く想定です。
-> 以降の画像ファイルは「例」のため、実際の環境の画面をキャプチャして同名ファイルで差し替えてください。
-
-**(1) Logic App のシステム割り当てマネージド ID を開く**
-
-![Azure Portal: Logic App > ID（Identity）](images/logicapp-identity-01.png)
-
-- Azure Portal で対象 Logic App（Playbook）を開きます
-- 左メニューから **ID（Identity）** を開きます
-- **システム割り当て** が **オン** になっていることを確認します（オフの場合はオンにして保存）
-
-**(2) オブジェクト（プリンシパル）ID をコピーする**
-
-![Azure Portal: Identity 画面の Object (principal) ID](images/logicapp-identity-02.png)
-
-- **オブジェクト（プリンシパル）ID** をコピーし、PowerShell の `$spID` に設定します
-
-> 補足
-> - ここで取得する **オブジェクト（プリンシパル）ID** が、PowerShell の `New-MgServicePrincipalAppRoleAssignment` に渡す `-ServicePrincipalId`（`$spID`）に相当します。
+<img width="808" height="625" alt="image" src="https://github.com/user-attachments/assets/8b999472-28a9-4873-9529-bc26dedabe83" />
+![Notify-Teams-Chat](image/5.png)
 
 #### 7.3.2 権限を付与（AppRole assignment）
 以下は `User.Read.All` を 1 つだけ付与する例です。複数必要な場合は、`$PermissionName` を変えて割り当てコマンドを繰り返します。
@@ -212,8 +198,3 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
-
-
-
-
-
