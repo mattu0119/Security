@@ -125,7 +125,6 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 #### 6.3.2 権限を付与（AppRole assignment）
 Entra ID ユーザー情報の取得には `User.Read.All` が必要です。Managed ID に Azure ポータルから権限付与できないため、PowerShell 以下のコマンドを実行して権限を付与します。
 
-> 注意（公開情報向け）
 > - 以下の `$TenantID` / `$spID` は **プレースホルダー**です。実環境の値に置き換えてください。
 
 ```powershell
@@ -191,6 +190,7 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
 
