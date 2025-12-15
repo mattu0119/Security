@@ -46,6 +46,25 @@
 > - 文字列の整形ルールは Teams コネクタ側の仕様に依存します。デプロイ後に実行して、メンバー解決に失敗する場合は区切り文字や空白（スペース）の有無を調整してください。
 
 ## 5. 展開方法（Azure Portal）
+### 5.1 Deploy to Azure ボタン（推奨）
+テンプレートを **インターネットから参照できる URL**（例: GitHub の raw URL）で公開している場合は、以下のボタンから Azure Portal の「カスタム テンプレート」作成画面へ直接遷移してデプロイできます。
+
+> 注意
+> - ボタン方式は、`Notify-Teams-Chat.json` が **HTTP/HTTPS でアクセス可能**であることが前提です（ローカル ファイルパスや認証が必要な URL では動作しません）。
+> - 公開リポジトリでない場合は、テンプレートを一時的に公開できる場所（例: 期限付き URL）へ置くか、後述の「5.2 手動（テンプレート貼り付け）」で展開してください。
+
+1. `＜RAW_TEMPLATE_URL＞` を、`Notify-Teams-Chat.json` の公開 URL に置き換えます
+2. 以下のボタンをクリックしてデプロイ画面へ遷移します
+
+**ボタン（URL は差し替え必須）**
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/%3CRAW_TEMPLATE_URL%3E)
+
+例（GitHub raw を想定したイメージ）:
+
+`https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2F%3COWNER%3E%2F%3CREPO%3E%2F%3Cbranch%3E%2FNotify-Teams-Chat.json`
+
+### 5.2 手動（テンプレート貼り付け）
 1. Azure Portal にサインインします
 2. **カスタム テンプレートのデプロイ**（「テンプレートをエディターで作成」または「テンプレートの編集」）を開きます
 3. `Notify-Teams-Chat.json` の内容を貼り付け、保存します
