@@ -121,7 +121,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 <img src="images/5.png" alt="Notify-Teams-Chat" width="600" />
 
 #### 6.3.2 権限を付与（AppRole assignment）
-以下は `User.Read.All` を 1 つだけ付与する例です。複数必要な場合は、`$PermissionName` を変えて割り当てコマンドを繰り返します。
+Entra ID ユーザー情報の取得には `User.Read.All` が必要です。Managed ID に Azure ポータルから権限付与できないため、PowerShell 以下のコマンドを実行して権限を付与します。
 
 > 注意（公開情報向け）
 > - 以下の `$TenantID` / `$spID` は **プレースホルダー**です。実環境の値に置き換えてください。
@@ -158,13 +158,23 @@ New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -BodyParameter
 環境整理や切り戻しで、付与した AppRole assignment を削除したい場合の例です。
 
 ```powershell
+# テナント ID と先ほどメモしたオブジェクト ID を設定
+$TenantID="＜テナントIDを入力＞"
+$spID="＜マネージドIDのオブジェクト（プリンシパル）IDを入力＞"
+
+# 事前に MS Graph PowerShell にログイン
+Connect-MgGraph -TenantId $TenantID -Scopes Application.Read.All,AppRoleAssignment.ReadWrite.All
+Import-Module Microsoft.Graph.Applications
+
+# サービスプリンシパルに付与した Microsoft Graph 権限 ID を取得
 $roleId = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID
+
+# サービスプリンシパルに付与した Microsoft Graph 権限の削除
 Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAssignmentId $roleId.Id
 ```
 
 > 補足
 > - Graph のアプリ権限は、割り当て後に反映まで時間がかかる場合があります。
-> - 権限は必要最小限となるように選定してください。テンプレートの Graph 呼び出しはユーザー参照（`/v1.0/users(...)`）のため、一般にユーザー読み取り系の権限が該当しますが、組織ポリシーに合わせて決定してください。
 
 ## 7. 動作確認（簡易）
 1. Microsoft Sentinel でテスト用インシデントを作成します
@@ -179,5 +189,6 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
