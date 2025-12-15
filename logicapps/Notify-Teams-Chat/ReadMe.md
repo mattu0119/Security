@@ -102,6 +102,85 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 
 - 実行時に Graph の 401/403 が発生する場合は、Logic App のシステム割り当てマネージド ID（サービス プリンシパル）に対して、Graph のアプリ権限（例: ユーザー情報参照に相当する権限）を付与し、管理者同意が必要になることがあります。
 
+以下は PowerShell（Microsoft Graph PowerShell SDK）を使って、マネージド ID（サービス プリンシパル）に Graph の **アプリ権限（AppRole）** を割り当てる例です。
+
+> 前提
+> - 実行者は、対象テナントでアプリ ロール割り当てができる権限（例: グローバル管理者、特権ロール管理者、または該当操作が可能な管理ロール）を保持している必要があります。
+> - Microsoft Graph PowerShell SDK を未導入の場合は、事前にインストールしてください（例: `Install-Module Microsoft.Graph -Scope CurrentUser`）。
+
+#### 7.3.1 事前にメモする値
+1. **Tenant ID**（テナント ID）
+2. **マネージド ID のサービス プリンシパル ID（Object ID）**
+   - Azure Portal → 対象 Logic App → **ID（Identity）** → **システム割り当て** → **オブジェクト（プリンシパル）ID** を確認します。
+
+スクリーンショット例（差し替え用）:
+
+> このリポジトリ（フォルダー）では、スクリーンショットを `images` 配下に置く想定です。
+> 以降の画像ファイルは「例」のため、実際の環境の画面をキャプチャして同名ファイルで差し替えてください。
+
+**(1) Logic App のシステム割り当てマネージド ID を開く**
+
+![Azure Portal: Logic App > ID（Identity）](images/logicapp-identity-01.png)
+
+- Azure Portal で対象 Logic App（Playbook）を開きます
+- 左メニューから **ID（Identity）** を開きます
+- **システム割り当て** が **オン** になっていることを確認します（オフの場合はオンにして保存）
+
+**(2) オブジェクト（プリンシパル）ID をコピーする**
+
+![Azure Portal: Identity 画面の Object (principal) ID](images/logicapp-identity-02.png)
+
+- **オブジェクト（プリンシパル）ID** をコピーし、PowerShell の `$spID` に設定します
+
+> 補足
+> - ここで取得する **オブジェクト（プリンシパル）ID** が、PowerShell の `New-MgServicePrincipalAppRoleAssignment` に渡す `-ServicePrincipalId`（`$spID`）に相当します。
+
+#### 7.3.2 権限を付与（AppRole assignment）
+以下は `User.Read.All` を 1 つだけ付与する例です。複数必要な場合は、`$PermissionName` を変えて割り当てコマンドを繰り返します。
+
+> 注意（公開情報向け）
+> - 以下の `$TenantID` / `$spID` は **プレースホルダー**です。実環境の値に置き換えてください。
+
+```powershell
+# テナント ID と先ほどメモしたオブジェクト ID を設定
+$TenantID="＜テナントIDを入力＞"
+$spID="＜マネージドIDのオブジェクト（プリンシパル）IDを入力＞"
+
+# MS Graph の許可を指定、1 つのみ指定
+# 複数必要の場合は「マネージド ID にアクセス許可を設定」のコマンドを繰り返し実施
+$PermissionName = "User.Read.All"
+
+# 事前に MS Graph PowerShell にログイン
+Connect-MgGraph -TenantId $TenantID -Scopes Application.Read.All,AppRoleAssignment.ReadWrite.All
+Import-Module Microsoft.Graph.Applications
+
+# Microsoft Graph のサービスプリンシパルを取得
+$GraphServicePrincipal = Get-MgServicePrincipal -Filter "DisplayName eq 'Microsoft Graph'" | Select-Object -first 1
+
+# マネージド ID にアクセス許可を設定
+$AppRole = $GraphServicePrincipal.AppRoles | Where-Object {$_.Value -eq $PermissionName -and $_.AllowedMemberTypes -contains "Application"}
+
+$params = @{
+  PrincipalId = $spID
+  ResourceId = $GraphServicePrincipal.Id
+  AppRoleId = $AppRole.Id
+}
+
+New-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -BodyParameter $params
+```
+
+#### 7.3.3 付与した権限の削除（必要に応じて）
+環境整理や切り戻しで、付与した AppRole assignment を削除したい場合の例です。
+
+```powershell
+$roleId = Get-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID
+Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAssignmentId $roleId.Id
+```
+
+> 補足
+> - Graph のアプリ権限は、割り当て後に反映まで時間がかかる場合があります。
+> - 権限は必要最小限となるように選定してください。テンプレートの Graph 呼び出しはユーザー参照（`/v1.0/users(...)`）のため、一般にユーザー読み取り系の権限が該当しますが、組織ポリシーに合わせて決定してください。
+
 ## 8. 動作確認（簡易）
 1. Microsoft Sentinel でテスト用インシデントを作成します
 2. Logic App の実行履歴でトリガーが起動していることを確認します
