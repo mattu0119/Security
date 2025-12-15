@@ -80,7 +80,7 @@
 6. 「確認と作成」→「作成」でデプロイします
 
 ## 6. 展開後の作業（重要）
-### 6.1 Teams コネクタ接続の認証（必須）
+### 6.1 Teams コネクタ接続の認証
 ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Teams 側の OAuth 認証は通常デプロイ後に実施が必要です。
 
 1. Azure Portal でデプロイしたリソース グループを開きます
@@ -92,7 +92,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 認証画面が表示されるので、Teams でチャットを作成するユーザーでサインインしてください。
 <img src="images/3.png" alt="Notify-Teams-Chat" width="400" />
 
-### 6.2 Sentinel コネクタ / 実行権限（確認）
+### 6.2 Sentinel コネクタ / 実行権限付与
 - テンプレートは `azuresentinel` 接続を **Managed Identity** で利用する構成です。
 - Logic Apps の Managed ID に付与した 「Sentinel レスポンダー」権限を利用し、インシデントにタグを追加します。
 
@@ -104,7 +104,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 
 <img src="images/4.png" alt="Notify-Teams-Chat" width="800" />
 
-### 6.3 Microsoft Graph 呼び出し（Managed Identity）の権限（必要に応じて）
+### 6.3 Microsoft Graph 呼び出し（Managed Identity）の権限付与
 ワークフロー内の HTTP アクションが `https://graph.microsoft.com/v1.0/users(...)` を `ManagedServiceIdentity` で呼び出します。
 
 - 実行時に Graph の 401/403 が発生する場合は、Logic App のシステム割り当てマネージド ID（サービス プリンシパル）に対して、Graph のアプリ権限（例: ユーザー情報参照に相当する権限）を付与し、管理者同意が必要になることがあります。
@@ -190,6 +190,7 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 6.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
 
