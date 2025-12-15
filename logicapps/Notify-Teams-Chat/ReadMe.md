@@ -136,7 +136,7 @@ ARM テンプレートは `Microsoft.Web/connections` を作成しますが、Te
 2. **マネージド ID のサービス プリンシパル ID（Object ID）**
    - Azure Portal → 対象 Logic App → **ID（Identity）** → **システム割り当て** → **オブジェクト（プリンシパル）ID** を確認します。
 
-<img src="image/5.png" alt="Notify-Teams-Chat" width="600" height="340" />
+<img src="images/5.png" alt="Notify-Teams-Chat" width="600" height="340" />
 
 #### 7.3.2 権限を付与（AppRole assignment）
 以下は `User.Read.All` を 1 つだけ付与する例です。複数必要な場合は、`$PermissionName` を変えて割り当てコマンドを繰り返します。
@@ -197,5 +197,6 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
 
 
