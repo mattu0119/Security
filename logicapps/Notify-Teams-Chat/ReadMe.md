@@ -56,13 +56,9 @@
 1. `＜RAW_TEMPLATE_URL＞` を、`Notify-Teams-Chat.json` の公開 URL に置き換えます
 2. 以下のボタンをクリックしてデプロイ画面へ遷移します
 
-**ボタン（URL は差し替え必須）**
+**ボタン**
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fmattu0119%2FSecurity%2Frefs%2Fheads%2Fmain%2Flogicapps%2FNotify-Teams-Chat%2FNotify-Teams-Chat.json)
-
-例（GitHub raw を想定したイメージ）:
-
-`https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2F%3COWNER%3E%2F%3CREPO%3E%2F%3Cbranch%3E%2FNotify-Teams-Chat.json`
 
 ### 5.2 手動（テンプレート貼り付け）
 1. Azure Portal にサインインします
@@ -213,3 +209,4 @@ Remove-MgServicePrincipalAppRoleAssignment -ServicePrincipalId $spID -AppRoleAss
   - 「展開後の作業 7.3」を確認し、マネージド ID への権限付与を検討してください。
 - **コネクタがリージョン未対応で失敗**
   - リソース グループのリージョンを変更するか、対象リージョンで `azuresentinel` / `teams` の Managed API が利用可能か確認してください。
+
