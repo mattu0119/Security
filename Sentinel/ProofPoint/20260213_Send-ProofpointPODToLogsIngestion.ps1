@@ -1,3 +1,9 @@
+<#
+作成日: 2026-02-13
+作成者: Hiroshi Matsumoto
+説明: Proofpoint POD を Logs Ingestion に送信するスクリプト
+#>
+
 param(
     [Parameter(Mandatory = $true)]
     [string]$InputPath,
@@ -340,3 +346,4 @@ if ($PromptOnSkip -and $totalSkipped -gt 0 -and -not $SkippedOutputPath) {
 } elseif ($skippedTempPath -and (Test-Path -LiteralPath $skippedTempPath)) {
     Remove-Item -LiteralPath $skippedTempPath -Force
 }
+
