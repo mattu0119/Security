@@ -10,13 +10,7 @@
     前提:
     - Az.Accounts モジュール利用可能
     - 適切な権限 (例: リソースグループに対する Log Analytics Contributor)
-    - レプリケーションが有効化済
-
-.SAMPLE
-  .\Invoke-WorkspaceReplicationFailback.ps1 `
-  -SubscriptionId "8c17e3ac-5866-4598-bea9-e4fe5f13dc86" `
-  -ResourceGroupName "rg-sentinel" `
-  -WorkspaceName "sentinel-jpe"
+    - レプリケーションが有効化済み
 #>
 
 param(
@@ -33,7 +27,10 @@ param(
     [int]$PollingIntervalSeconds = 30,
 
     [Parameter()]
-    [int]$TimeoutMinutes = 60
+    [int]$TimeoutMinutes = 60,
+
+    [Parameter()]
+    [switch]$Force
 )
 
 Set-StrictMode -Version Latest
@@ -96,10 +93,12 @@ if ($rep.enabled -ne $true) {
     throw "レプリケーションが有効ではありません。フェールバックを実行できません。"
 }
 
-$confirm = Read-Host "`nフェールバックを実行します。よろしいですか？ (y/N)"
-if ($confirm -ne "y") {
-    Write-Host "処理を中止しました。" -ForegroundColor Yellow
-    exit 0
+if (-not $Force) {
+    $confirm = Read-Host "`nフェールバックを実行します。よろしいですか？ (y/N)"
+    if ($confirm -notmatch '^(?i:y|yes)$') {
+        Write-Host "処理を中止しました。" -ForegroundColor Yellow
+        exit 0
+    }
 }
 
 Write-Host "`n=== フェールバック実行 ===" -ForegroundColor Cyan

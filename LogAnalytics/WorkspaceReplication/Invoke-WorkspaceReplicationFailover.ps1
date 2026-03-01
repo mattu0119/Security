@@ -1,16 +1,25 @@
 <#
+作成日: 2026-02-27
+作成者: Hiroshi Matsumoto
+
 .SYNOPSIS
-    Log Analytics ワークスペース レプリケーションのフェールオーバーを実行する
+    Log Analytics ワークスペースレプリケーションを有効化するスクリプト
 
 .DESCRIPTION
-    Azure Monitor Log Analytics ワークスペースに対して、セカンダリリージョンへのフェールオーバーを実行します。
-    REST API (api-version: 2025-02-01) を Invoke-AzRestMethod で呼び出します。
+    Azure Monitor Log Analytics ワークスペースのレプリケーションを有効化します。
+    REST API (api-version: 2025-02-01) を使用し、Invoke-AzRestMethod で呼び出します。
 
 .NOTES
-    前提:
-    - Az.Accounts モジュール利用可能
-    - 適切な権限 (例: リソースグループに対する Log Analytics Contributor)
-    - レプリケーションが有効化済み
+    前提条件:
+    - Az PowerShell モジュールがインストール済みであること
+    - Microsoft.OperationalInsights/workspaces/write 権限があること
+    - Microsoft.Insights/dataCollectionEndpoints/write 権限があること
+    - プライマリとセカンダリは同じリージョングループ内であること
+    - レプリケーション有効化前に取り込まれたログはセカンダリにコピーされません
+    - Auxiliary テーブルを使用しているワークスペースでは使用しないでください
+
+.LINK
+    https://learn.microsoft.com/en-us/azure/azure-monitor/logs/workspace-replication
 #>
 
 param(
@@ -24,13 +33,19 @@ param(
     [string]$WorkspaceName,
 
     [Parameter(Mandatory = $true)]
+    [string]$PrimaryRegion,
+
+    [Parameter(Mandatory = $true)]
     [string]$SecondaryRegion,
 
     [Parameter()]
     [int]$PollingIntervalSeconds = 30,
 
     [Parameter()]
-    [int]$TimeoutMinutes = 60
+    [int]$TimeoutMinutes = 60,
+
+    [Parameter()]
+    [switch]$Force
 )
 
 Set-StrictMode -Version Latest
@@ -47,116 +62,185 @@ function Get-WorkspaceInfo {
     )
 
     $uri = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OperationalInsights/workspaces/${WorkspaceName}?api-version=$ApiVersion"
-    $res = Invoke-AzRestMethod -Method GET -Path $uri
+    $response = Invoke-AzRestMethod -Method GET -Path $uri
 
-    if ($res.StatusCode -ne 200) {
-        throw "ワークスペース取得に失敗しました。StatusCode: $($res.StatusCode)`n$($res.Content)"
+    if ($response.StatusCode -ne 200) {
+        throw "ワークスペースの取得に失敗しました。StatusCode: $($response.StatusCode)`n$($response.Content)"
     }
 
-    return ($res.Content | ConvertFrom-Json)
+    return ($response.Content | ConvertFrom-Json)
 }
 
-function Has-Property {
+function Test-HasReplicationProperty {
     param(
-        [Parameter(Mandatory = $true)]$Object,
-        [Parameter(Mandatory = $true)][string]$Name
+        [Parameter(Mandatory = $true)]$WorkspaceInfo
     )
-    return ($Object.PSObject.Properties.Name -contains $Name)
+    return ($WorkspaceInfo.properties.PSObject.Properties.Name -contains "replication")
 }
 
-Write-Host "=== Azure 接続確認 ===" -ForegroundColor Cyan
-$ctx = Get-AzContext
-if (-not $ctx) {
-    Write-Host "Azure にログインしていないため Connect-AzAccount を実行します..." -ForegroundColor Yellow
-    Connect-AzAccount | Out-Null
-}
-Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
-Write-Host "サブスクリプション: $SubscriptionId" -ForegroundColor Green
+function Write-WorkspaceStatus {
+    param(
+        [Parameter(Mandatory = $true)]$WorkspaceInfo
+    )
 
-Write-Host "`n=== フェールオーバー前チェック ===" -ForegroundColor Cyan
-$ws = Get-WorkspaceInfo -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName -WorkspaceName $WorkspaceName -ApiVersion $apiVersion
+    Write-Host "ワークスペース名        : $($WorkspaceInfo.name)"
+    Write-Host "リージョン              : $($WorkspaceInfo.location)"
+    Write-Host "provisioningState      : $($WorkspaceInfo.properties.provisioningState)"
 
-Write-Host "ワークスペース名      : $($ws.name)"
-Write-Host "現在の location      : $($ws.location)"
-Write-Host "provisioningState    : $($ws.properties.provisioningState)"
-
-$hasReplication = Has-Property -Object $ws.properties -Name "replication"
-if (-not $hasReplication) {
-    throw "replication プロパティが未設定です。先に Enable-WorkspaceReplication.ps1 を実行してください。"
+    $hasReplication = Test-HasReplicationProperty -WorkspaceInfo $WorkspaceInfo
+    if ($hasReplication) {
+        Write-Host "replication.enabled    : $($WorkspaceInfo.properties.replication.enabled)"
+        Write-Host "replication.location   : $($WorkspaceInfo.properties.replication.location)"
+    } else {
+        Write-Host "replication            : (未設定)" -ForegroundColor Yellow
+    }
 }
 
-$rep = $ws.properties.replication
-Write-Host "replication.enabled  : $($rep.enabled)"
-Write-Host "replication.location : $($rep.location)"
-
-if ($rep.enabled -ne $true) {
-    throw "レプリケーションが有効ではありません。先に有効化してください。"
+# -------------------------------------------------------
+# 1. Azure への接続確認
+# -------------------------------------------------------
+Write-Host "=== Azure 接続を確認しています ===" -ForegroundColor Cyan
+try {
+    $context = Get-AzContext
+    if (-not $context) {
+        Write-Host "Azure にログインしていません。Connect-AzAccount を実行します..." -ForegroundColor Yellow
+        Connect-AzAccount | Out-Null
+    }
+    Set-AzContext -SubscriptionId $SubscriptionId | Out-Null
+    Write-Host "サブスクリプション: $SubscriptionId" -ForegroundColor Green
+}
+catch {
+    Write-Error "Azure への接続に失敗しました: $_"
+    exit 1
 }
 
-if ($rep.location -ne $SecondaryRegion) {
-    Write-Warning "指定した SecondaryRegion ($SecondaryRegion) と現在の replication.location ($($rep.location)) が一致しません。"
-    $ans = Read-Host "このまま続行しますか？ (y/N)"
-    if ($ans -ne "y") {
+# -------------------------------------------------------
+# 2. 現在のワークスペース状態を確認
+# -------------------------------------------------------
+Write-Host "`n=== ワークスペースの現在の状態を確認しています ===" -ForegroundColor Cyan
+
+try {
+    $workspaceInfo = Get-WorkspaceInfo -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName -WorkspaceName $WorkspaceName -ApiVersion $apiVersion
+    Write-WorkspaceStatus -WorkspaceInfo $workspaceInfo
+
+    # 既存のレプリケーション設定を確認（プロパティ存在チェック付き）
+    $hasReplication = Test-HasReplicationProperty -WorkspaceInfo $workspaceInfo
+    if ($hasReplication -and $workspaceInfo.properties.replication.enabled -eq $true) {
+        Write-Host "`nレプリケーション  : 既に有効 (セカンダリ: $($workspaceInfo.properties.replication.location))" -ForegroundColor Yellow
+        $continueChoice = Read-Host "レプリケーション設定を更新しますか？ (y/N)"
+        if ($continueChoice -ne "y") {
+            Write-Host "処理を中止しました。" -ForegroundColor Yellow
+            exit 0
+        }
+    }
+    elseif (-not $hasReplication) {
+        Write-Host "レプリケーション  : 未設定（これから有効化します）" -ForegroundColor Yellow
+    }
+}
+catch {
+    Write-Error "ワークスペースの確認に失敗しました: $_"
+    exit 1
+}
+
+# -------------------------------------------------------
+# 3. レプリケーションを有効化
+# -------------------------------------------------------
+Write-Host "`n=== レプリケーションを有効化しています ===" -ForegroundColor Cyan
+Write-Host "プライマリリージョン  : $PrimaryRegion"
+Write-Host "セカンダリリージョン  : $SecondaryRegion"
+
+# 有効化前の最終確認（-Force 指定時はスキップ）
+if (-not $Force) {
+    Write-Host "`nこれからレプリケーション有効化 API を実行します。" -ForegroundColor Yellow
+    Write-Host "  SubscriptionId : $SubscriptionId"
+    Write-Host "  ResourceGroup  : $ResourceGroupName"
+    Write-Host "  WorkspaceName  : $WorkspaceName"
+    Write-Host "  PrimaryRegion  : $PrimaryRegion"
+    Write-Host "  SecondaryRegion: $SecondaryRegion"
+
+    $confirm = Read-Host "この内容で実行しますか？ (y/N)"
+    if ($confirm -notmatch '^(?i:y|yes)$') {
         Write-Host "処理を中止しました。" -ForegroundColor Yellow
         exit 0
     }
 }
 
-$confirm = Read-Host "`nフェールオーバーを実行します。よろしいですか？ (y/N)"
-if ($confirm -ne "y") {
-    Write-Host "処理を中止しました。" -ForegroundColor Yellow
-    exit 0
+$putUri = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OperationalInsights/workspaces/${WorkspaceName}?api-version=$apiVersion"
+
+$body = @{
+    location   = $PrimaryRegion
+    properties = @{
+        replication = @{
+            enabled  = $true
+            location = $SecondaryRegion
+        }
+    }
+} | ConvertTo-Json -Depth 5
+
+Write-Host "`nリクエストボディ:" -ForegroundColor Gray
+Write-Host $body -ForegroundColor Gray
+
+try {
+    $putResponse = Invoke-AzRestMethod -Method PUT -Path $putUri -Payload $body
+    
+    if ($putResponse.StatusCode -notin @(200, 201)) {
+        Write-Error "レプリケーションの有効化に失敗しました。StatusCode: $($putResponse.StatusCode)`n$($putResponse.Content)"
+        exit 1
+    }
+
+    Write-Host "`nAPI 呼び出し成功 (StatusCode: $($putResponse.StatusCode))" -ForegroundColor Green
+}
+catch {
+    Write-Error "レプリケーション有効化の API 呼び出しに失敗しました: $_"
+    exit 1
 }
 
-Write-Host "`n=== フェールオーバー実行 ===" -ForegroundColor Cyan
-$failoverUri = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OperationalInsights/locations/$SecondaryRegion/workspaces/${WorkspaceName}/failover?api-version=$apiVersion"
-
-$failoverResponse = Invoke-AzRestMethod -Method POST -Path $failoverUri
-
-if ($failoverResponse.StatusCode -notin @(200, 202)) {
-    throw "フェールオーバー API 呼び出しに失敗しました。StatusCode: $($failoverResponse.StatusCode)`n$($failoverResponse.Content)"
-}
-
-Write-Host "フェールオーバー API 呼び出し成功 (StatusCode: $($failoverResponse.StatusCode))" -ForegroundColor Green
-
-Write-Host "`n=== 状態監視 (provisioningState) ===" -ForegroundColor Cyan
+# -------------------------------------------------------
+# 4. プロビジョニング状態をポーリングして完了を待機
+# -------------------------------------------------------
+Write-Host "`n=== プロビジョニング完了を待機しています ===" -ForegroundColor Cyan
 Write-Host "ポーリング間隔: ${PollingIntervalSeconds}秒 / タイムアウト: ${TimeoutMinutes}分"
 
-$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 $timeoutMs = $TimeoutMinutes * 60 * 1000
 
-while ($sw.ElapsedMilliseconds -lt $timeoutMs) {
+while ($stopwatch.ElapsedMilliseconds -lt $timeoutMs) {
     Start-Sleep -Seconds $PollingIntervalSeconds
 
     try {
-        $current = Get-WorkspaceInfo -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName -WorkspaceName $WorkspaceName -ApiVersion $apiVersion
-        $state = $current.properties.provisioningState
-        $elapsed = [math]::Round($sw.Elapsed.TotalMinutes, 1)
+        $pollResult = Get-WorkspaceInfo -SubscriptionId $SubscriptionId -ResourceGroupName $ResourceGroupName -WorkspaceName $WorkspaceName -ApiVersion $apiVersion
+        $state = $pollResult.properties.provisioningState
+        $elapsed = [math]::Round($stopwatch.Elapsed.TotalMinutes, 1)
 
-        Write-Host "  [$elapsed 分経過] provisioningState: $state"
+        Write-Host "  [$($elapsed)分経過] provisioningState: $state"
 
         if ($state -eq "Succeeded") {
-            Write-Host "`n=== フェールオーバー処理完了 ===" -ForegroundColor Green
-            Write-Host "workspace.location    : $($current.location)"
+            Write-Host "`n=== レプリケーションの有効化が完了しました ===" -ForegroundColor Green
+            Write-WorkspaceStatus -WorkspaceInfo $pollResult
 
-            $hasReplicationNow = Has-Property -Object $current.properties -Name "replication"
-            if ($hasReplicationNow) {
-                Write-Host "replication.enabled   : $($current.properties.replication.enabled)"
-                Write-Host "replication.location  : $($current.properties.replication.location)"
+            $hasReplicationAfter = Test-HasReplicationProperty -WorkspaceInfo $pollResult
+            if ($hasReplicationAfter -and $pollResult.properties.replication.enabled -eq $true) {
+                Write-Host "`n✅ レプリケーションは有効です。" -ForegroundColor Green
+            } else {
+                Write-Host "`n⚠ レプリケーションが有効化されていない可能性があります。状態を確認してください。" -ForegroundColor Yellow
             }
 
-            $sw.Stop()
+            Write-Host "`n注意: すべてのテーブルのレプリケーションが開始されるまで最大1時間かかる場合があります。" -ForegroundColor Yellow
+            Write-Host "注意: スイッチオーバーを実行する前に、少なくとも7日間待つことを推奨します。" -ForegroundColor Yellow
+            $stopwatch.Stop()
             exit 0
         }
-
-        if ($state -in @("Failed", "Canceled")) {
-            throw "フェールオーバー後のプロビジョニングが失敗しました。state: $state"
+        elseif ($state -eq "Failed" -or $state -eq "Canceled") {
+            Write-Error "プロビジョニングが失敗しました。状態: $state"
+            $stopwatch.Stop()
+            exit 1
         }
     }
     catch {
-        Write-Warning "状態確認中にエラー: $_"
+        Write-Warning "ポーリング中にエラーが発生しました。リトライします... 詳細: $_"
     }
 }
 
-$sw.Stop()
-throw "タイムアウト (${TimeoutMinutes}分) に達しました。Azure Portal で状態を確認してください。"
+$stopwatch.Stop()
+Write-Error "タイムアウト (${TimeoutMinutes}分) に達しました。Azure Portal でプロビジョニング状態を確認してください。"
+exit 1

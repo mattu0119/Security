@@ -42,7 +42,10 @@ param(
     [int]$PollingIntervalSeconds = 30,
 
     [Parameter()]
-    [int]$TimeoutMinutes = 60
+    [int]$TimeoutMinutes = 60,
+
+    [Parameter()]
+    [switch]$Force
 )
 
 Set-StrictMode -Version Latest
@@ -145,6 +148,22 @@ catch {
 Write-Host "`n=== レプリケーションを有効化しています ===" -ForegroundColor Cyan
 Write-Host "プライマリリージョン  : $PrimaryRegion"
 Write-Host "セカンダリリージョン  : $SecondaryRegion"
+
+# 有効化前の最終確認（-Force 指定時はスキップ）
+if (-not $Force) {
+    Write-Host "`nこれからレプリケーション有効化 API を実行します。" -ForegroundColor Yellow
+    Write-Host "  SubscriptionId : $SubscriptionId"
+    Write-Host "  ResourceGroup  : $ResourceGroupName"
+    Write-Host "  WorkspaceName  : $WorkspaceName"
+    Write-Host "  PrimaryRegion  : $PrimaryRegion"
+    Write-Host "  SecondaryRegion: $SecondaryRegion"
+
+    $confirm = Read-Host "この内容で実行しますか？ (y/N)"
+    if ($confirm -notmatch '^(?i:y|yes)$') {
+        Write-Host "処理を中止しました。" -ForegroundColor Yellow
+        exit 0
+    }
+}
 
 $putUri = "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OperationalInsights/workspaces/${WorkspaceName}?api-version=$apiVersion"
 
