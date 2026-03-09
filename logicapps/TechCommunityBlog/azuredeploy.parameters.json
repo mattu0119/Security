@@ -1,0 +1,91 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "value": "la-techcommunity-security-rss"
+    },
+    "location": {
+      "value": "eastus2"
+    },
+    "pollIntervalMinutes": {
+      "value": 30
+    },
+    "feedConfigs": {
+      "value": [
+        {
+          "name": "Microsoft Security Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftSecurityBlog"
+        },
+        {
+          "name": "Microsoft Sentinel Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftSentinelBlog"
+        },
+        {
+          "name": "Microsoft Defender XDR Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftDefenderXDRBlog"
+        },
+        {
+          "name": "Microsoft Entra Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftEntraBlog"
+        },
+        {
+          "name": "Microsoft Defender for Cloud Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftDefenderforCloudBlog"
+        },
+        {
+          "name": "Microsoft Purview Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftPurviewBlog"
+        },
+        {
+          "name": "Microsoft Intune Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftIntuneBlog"
+        },
+        {
+          "name": "Azure Network Security Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=AzureNetworkSecurityBlog"
+        },
+        {
+          "name": "Microsoft Security Experts Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftSecurityExpertsBlog"
+        }
+      ]
+    },
+    "teamsWebhookUrl": {
+      "value": "https://<YOUR-NEW-POWER-AUTOMATE-OR-TEAMS-WEBHOOK-URL>"
+    },
+    "openAiAccountName": {
+      "value": "aoai-techcommunity-eus2-001"
+    },
+    "openAiLocation": {
+      "value": "eastus2"
+    },
+    "openAiSkuName": {
+      "value": "S0"
+    },
+    "openAiCustomSubdomainName": {
+      "value": "aoai-techcommunity-eus2-001"
+    },
+    "openAiDeploymentName": {
+      "value": "gpt54-jp-summary"
+    },
+    "openAiModelName": {
+      "value": "gpt-5.4"
+    },
+    "openAiModelVersion": {
+      "value": "2026-03-05"
+    },
+    "openAiDeploymentSkuName": {
+      "value": "GlobalStandard"
+    },
+    "openAiDeploymentCapacity": {
+      "value": 1
+    },
+    "storageAccountName": {
+      "value": "sttechcommunityeus201"
+    },
+    "dedupeTableName": {
+      "value": "ProcessedRssItems"
+    }
+  }
+}

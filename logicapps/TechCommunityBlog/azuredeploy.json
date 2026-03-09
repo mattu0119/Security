@@ -1,0 +1,562 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Logic App name"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Location for Logic App and Storage"
+      }
+    },
+    "pollIntervalMinutes": {
+      "type": "int",
+      "defaultValue": 30,
+      "minValue": 5
+    },
+    "feedConfigs": {
+      "type": "array",
+      "metadata": {
+        "description": "Array of RSS feeds. Each item: { name, url }"
+      }
+    },
+    "teamsWebhookUrl": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Power Automate or Teams webhook URL"
+      }
+    },
+    "openAiAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure OpenAI account name"
+      }
+    },
+    "openAiLocation": {
+      "type": "string",
+      "defaultValue": "eastus2"
+    },
+    "openAiSkuName": {
+      "type": "string",
+      "defaultValue": "S0"
+    },
+    "openAiCustomSubdomainName": {
+      "type": "string",
+      "metadata": {
+        "description": "Custom subdomain name for Azure OpenAI"
+      }
+    },
+    "openAiDeploymentName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure OpenAI deployment name"
+      }
+    },
+    "openAiModelName": {
+      "type": "string",
+      "defaultValue": "gpt-5.4"
+    },
+    "openAiModelVersion": {
+      "type": "string",
+      "defaultValue": "2026-03-05"
+    },
+    "openAiDeploymentSkuName": {
+      "type": "string",
+      "defaultValue": "GlobalStandard",
+      "allowedValues": [
+        "GlobalStandard",
+        "DataZoneStandard"
+      ]
+    },
+    "openAiDeploymentCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1
+    },
+    "storageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name for dedupe table"
+      }
+    },
+    "dedupeTableName": {
+      "type": "string",
+      "defaultValue": "ProcessedRssItems"
+    }
+  },
+  "variables": {
+    "logicApiVersion": "2019-05-01",
+    "storageApiVersion": "2023-05-01",
+    "cognitiveApiVersion": "2023-05-01",
+    "roleAssignmentsApiVersion": "2022-04-01",
+    "openAiUserRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd')]",
+    "storageTableContributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.CognitiveServices/accounts",
+      "apiVersion": "[variables('cognitiveApiVersion')]",
+      "name": "[parameters('openAiAccountName')]",
+      "location": "[parameters('openAiLocation')]",
+      "kind": "OpenAI",
+      "sku": {
+        "name": "[parameters('openAiSkuName')]"
+      },
+      "properties": {
+        "customSubDomainName": "[parameters('openAiCustomSubdomainName')]",
+        "publicNetworkAccess": "Enabled",
+        "disableLocalAuth": true
+      }
+    },
+    {
+      "type": "Microsoft.CognitiveServices/accounts/deployments",
+      "apiVersion": "[variables('cognitiveApiVersion')]",
+      "name": "[concat(parameters('openAiAccountName'), '/', parameters('openAiDeploymentName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openAiAccountName'))]"
+      ],
+      "sku": {
+        "name": "[parameters('openAiDeploymentSkuName')]",
+        "capacity": "[parameters('openAiDeploymentCapacity')]"
+      },
+      "properties": {
+        "model": {
+          "format": "OpenAI",
+          "name": "[parameters('openAiModelName')]",
+          "version": "[parameters('openAiModelVersion')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2",
+        "allowBlobPublicAccess": false,
+        "allowSharedKeyAccess": false,
+        "publicNetworkAccess": "Enabled"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "name": "[concat(parameters('storageAccountName'), '/default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/tableServices/tables",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "name": "[concat(parameters('storageAccountName'), '/default/', parameters('dedupeTableName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/tableServices', parameters('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "[variables('logicApiVersion')]",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.CognitiveServices/accounts/deployments', parameters('openAiAccountName'), parameters('openAiDeploymentName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/tableServices/tables', parameters('storageAccountName'), 'default', parameters('dedupeTableName'))]"
+      ],
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "pollIntervalMinutes": {
+              "type": "Int"
+            },
+            "feedConfigs": {
+              "type": "Array"
+            },
+            "teamsWebhookUrl": {
+              "type": "String"
+            },
+            "openAiEndpoint": {
+              "type": "String"
+            },
+            "openAiDeploymentName": {
+              "type": "String"
+            },
+            "storageAccountName": {
+              "type": "String"
+            },
+            "dedupeTableName": {
+              "type": "String"
+            }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "recurrence": {
+                "frequency": "Minute",
+                "interval": "@parameters('pollIntervalMinutes')"
+              }
+            }
+          },
+          "actions": {
+            "For_each_feed": {
+              "type": "Foreach",
+              "foreach": "@parameters('feedConfigs')",
+              "runtimeConfiguration": {
+                "concurrency": {
+                  "repetitions": 1
+                }
+              },
+              "actions": {
+                "Get_feed": {
+                  "type": "Http",
+                  "inputs": {
+                    "method": "GET",
+                    "uri": "@items('For_each_feed')?['url']",
+                    "timeout": "PT30S"
+                  }
+                },
+                "For_each_item": {
+                  "type": "Foreach",
+                  "runAfter": {
+                    "Get_feed": [
+                      "Succeeded"
+                    ]
+                  },
+                  "foreach": "@xpath(xml(body('Get_feed')), '//item')",
+                  "runtimeConfiguration": {
+                    "concurrency": {
+                      "repetitions": 1
+                    }
+                  },
+                  "actions": {
+                    "Compose_PartitionKeyRaw": {
+                      "type": "Compose",
+                      "inputs": "@{items('For_each_feed')?['name']}"
+                    },
+                    "Compose_RowKeyRaw": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Compose_PartitionKeyRaw": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": "@{coalesce(first(xpath(item(), 'guid/text()')), first(xpath(item(), 'link/text()')), concat(coalesce(first(xpath(item(), 'title/text()')), 'untitled'), '|', coalesce(first(xpath(item(), 'pubDate/text()')), '')))}"
+                    },
+                    "Compose_PartitionKeyEncoded": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Compose_RowKeyRaw": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": "@{uriComponent(outputs('Compose_PartitionKeyRaw'))}"
+                    },
+                    "Compose_RowKeyEncoded": {
+                      "type": "Compose",
+                      "runAfter": {
+                        "Compose_PartitionKeyEncoded": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": "@{uriComponent(outputs('Compose_RowKeyRaw'))}"
+                    },
+                    "Query_dedupe_entities": {
+                      "type": "Http",
+                      "runAfter": {
+                        "Compose_RowKeyEncoded": [
+                          "Succeeded"
+                        ]
+                      },
+                      "inputs": {
+                        "method": "GET",
+                        "uri": "@{concat('https://', parameters('storageAccountName'), '.table.core.windows.net/', parameters('dedupeTableName'), '()?$filter=PartitionKey%20eq%20%27', outputs('Compose_PartitionKeyEncoded'), '%27%20and%20RowKey%20eq%20%27', outputs('Compose_RowKeyEncoded'), '%27&$top=1')}",
+                        "headers": {
+                          "Accept": "application/json;odata=nometadata",
+                          "x-ms-version": "2019-02-02"
+                        },
+                        "authentication": {
+                          "type": "ManagedServiceIdentity",
+                          "audience": "https://storage.azure.com/"
+                        },
+                        "timeout": "PT30S"
+                      }
+                    },
+                    "If_not_processed": {
+                      "type": "If",
+                      "runAfter": {
+                        "Query_dedupe_entities": [
+                          "Succeeded"
+                        ]
+                      },
+                      "expression": "@empty(body('Query_dedupe_entities')?['value'])",
+                      "actions": {
+                        "Call_Azure_OpenAI_Responses_API": {
+                          "type": "Http",
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "@{concat(parameters('openAiEndpoint'), '/openai/v1/responses')}",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            },
+                            "authentication": {
+                              "type": "ManagedServiceIdentity",
+                              "audience": "https://cognitiveservices.azure.com/"
+                            },
+                            "body": {
+                              "model": "@{parameters('openAiDeploymentName')}",
+                              "instructions": "You are a Japanese summarizer for Microsoft Security and Microsoft Tech Community blog posts. Return compact JSON only with these keys: summaryJa, whyItMattersJa, category, sourceBlog. summaryJa must be concise Japanese text in up to 3 bullets or 3 short lines. whyItMattersJa must be one short sentence useful for a Microsoft Security Cloud Solution Architect. category should be a short product/category label. sourceBlog should be the source blog name. Do not return markdown fences.",
+                              "input": "@{concat('FeedName: ', items('For_each_feed')?['name'], '\nTitle: ', coalesce(first(xpath(item(), 'title/text()')), 'Untitled'), '\nPublished: ', coalesce(first(xpath(item(), 'pubDate/text()')), ''), '\nLink: ', coalesce(first(xpath(item(), 'link/text()')), ''), '\nDescription: ', coalesce(first(xpath(item(), 'description/text()')), ''), '\n\nSummarize the content in Japanese. Ignore raw HTML tags if any are present in the description.')}",
+                              "max_output_tokens": 700
+                            },
+                            "timeout": "PT45S"
+                          }
+                        },
+                        "Parse_summary_json": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Call_Azure_OpenAI_Responses_API": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": "@json(body('Call_Azure_OpenAI_Responses_API')?['output'][0]?['content'][0]?['text'])"
+                        },
+                        "Compose_adaptive_card_payload": {
+                          "type": "Compose",
+                          "runAfter": {
+                            "Parse_summary_json": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "type": "message",
+                            "attachments": [
+                              {
+                                "contentType": "application/vnd.microsoft.card.adaptive",
+                                "contentUrl": null,
+                                "content": {
+                                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                                  "type": "AdaptiveCard",
+                                  "version": "1.4",
+                                  "msteams": {
+                                    "width": "Full"
+                                  },
+                                  "body": [
+                                    {
+                                      "type": "TextBlock",
+                                      "size": "Medium",
+                                      "weight": "Bolder",
+                                      "wrap": true,
+                                      "text": "@{coalesce(first(xpath(item(), 'title/text()')), 'Untitled')}"
+                                    },
+                                    {
+                                      "type": "FactSet",
+                                      "facts": [
+                                        {
+                                          "title": "Blog",
+                                          "value": "@{items('For_each_feed')?['name']}"
+                                        },
+                                        {
+                                          "title": "Published",
+                                          "value": "@{coalesce(first(xpath(item(), 'pubDate/text()')), '-')}"
+                                        },
+                                        {
+                                          "title": "Category",
+                                          "value": "@{coalesce(outputs('Parse_summary_json')?['category'], '-')}"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "type": "TextBlock",
+                                      "weight": "Bolder",
+                                      "spacing": "Medium",
+                                      "text": "日本語サマリ",
+                                      "wrap": true
+                                    },
+                                    {
+                                      "type": "TextBlock",
+                                      "text": "@{coalesce(outputs('Parse_summary_json')?['summaryJa'], '要約を生成できませんでした。')}",
+                                      "wrap": true
+                                    },
+                                    {
+                                      "type": "TextBlock",
+                                      "weight": "Bolder",
+                                      "spacing": "Medium",
+                                      "text": "Why it matters",
+                                      "wrap": true
+                                    },
+                                    {
+                                      "type": "TextBlock",
+                                      "text": "@{coalesce(outputs('Parse_summary_json')?['whyItMattersJa'], '-')}",
+                                      "wrap": true
+                                    }
+                                  ],
+                                  "actions": [
+                                    {
+                                      "type": "Action.OpenUrl",
+                                      "title": "原文を開く",
+                                      "url": "@{coalesce(first(xpath(item(), 'link/text()')), 'https://techcommunity.microsoft.com/')}"
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "Post_to_webhook": {
+                          "type": "Http",
+                          "runAfter": {
+                            "Compose_adaptive_card_payload": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "@parameters('teamsWebhookUrl')",
+                            "headers": {
+                              "Content-Type": "application/json"
+                            },
+                            "body": "@outputs('Compose_adaptive_card_payload')",
+                            "timeout": "PT30S"
+                          }
+                        },
+                        "Insert_dedupe_entity": {
+                          "type": "Http",
+                          "runAfter": {
+                            "Post_to_webhook": [
+                              "Succeeded"
+                            ]
+                          },
+                          "inputs": {
+                            "method": "POST",
+                            "uri": "@{concat('https://', parameters('storageAccountName'), '.table.core.windows.net/', parameters('dedupeTableName'))}",
+                            "headers": {
+                              "Accept": "application/json;odata=nometadata",
+                              "Content-Type": "application/json",
+                              "x-ms-version": "2019-02-02"
+                            },
+                            "authentication": {
+                              "type": "ManagedServiceIdentity",
+                              "audience": "https://storage.azure.com/"
+                            },
+                            "body": {
+                              "PartitionKey": "@{outputs('Compose_PartitionKeyRaw')}",
+                              "RowKey": "@{outputs('Compose_RowKeyRaw')}",
+                              "Title": "@{coalesce(first(xpath(item(), 'title/text()')), 'Untitled')}",
+                              "Link": "@{coalesce(first(xpath(item(), 'link/text()')), '')}",
+                              "Published": "@{coalesce(first(xpath(item(), 'pubDate/text()')), '')}",
+                              "SourceBlog": "@{items('For_each_feed')?['name']}",
+                              "ProcessedAtUtc": "@{utcNow()}"
+                            },
+                            "timeout": "PT30S"
+                          }
+                        }
+                      },
+                      "else": {
+                        "actions": {
+                          "Compose_skip_message": {
+                            "type": "Compose",
+                            "inputs": "@{concat('Skipped duplicate item: ', coalesce(first(xpath(item(), 'title/text()')), 'Untitled'))}"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {
+          "pollIntervalMinutes": {
+            "value": "[parameters('pollIntervalMinutes')]"
+          },
+          "feedConfigs": {
+            "value": "[parameters('feedConfigs')]"
+          },
+          "teamsWebhookUrl": {
+            "value": "[parameters('teamsWebhookUrl')]"
+          },
+          "openAiEndpoint": {
+            "value": "[concat('https://', parameters('openAiCustomSubdomainName'), '.openai.azure.com')]"
+          },
+          "openAiDeploymentName": {
+            "value": "[parameters('openAiDeploymentName')]"
+          },
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "dedupeTableName": {
+            "value": "[parameters('dedupeTableName')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "[variables('roleAssignmentsApiVersion')]",
+      "name": "[guid(resourceId('Microsoft.CognitiveServices/accounts', parameters('openAiAccountName')), 'logicapp-openai-user')]",
+      "scope": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openAiAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]",
+        "[resourceId('Microsoft.CognitiveServices/accounts', parameters('openAiAccountName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('openAiUserRoleDefinitionId')]",
+        "principalId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), variables('logicApiVersion'), 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "[variables('roleAssignmentsApiVersion')]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), 'logicapp-storage-table-contributor')]",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "roleDefinitionId": "[variables('storageTableContributorRoleDefinitionId')]",
+        "principalId": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), variables('logicApiVersion'), 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+    },
+    "openAiEndpoint": {
+      "type": "string",
+      "value": "[concat('https://', parameters('openAiCustomSubdomainName'), '.openai.azure.com')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[parameters('storageAccountName')]"
+    },
+    "dedupeTableName": {
+      "type": "string",
+      "value": "[parameters('dedupeTableName')]"
+    }
+  }
+}
