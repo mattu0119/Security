@@ -7,5 +7,11 @@
     "chat.edits2.enabled": true,
     "chat.tools.edits.autoApprove": {
         "**/.vscode/*.json": true
-    }
+    },
+    "python.analysis.extraPaths": [
+        "c:\\Users\\HiroshiMatsumoto\\.vscode\\extensions\\ms-security.ms-sentinel-0.1.0\\python",
+        "c:\\Users\\HiroshiMatsumoto\\.vscode\\extensions\\ms-security.ms-sentinel-1.1.1\\python",
+        "c:\\Users\\HiroshiMatsumoto\\.vscode\\extensions\\ms-security.ms-sentinel-1.1.5\\python",
+        "c:\\Users\\HiroshiMatsumoto\\.vscode\\extensions\\ms-security.ms-sentinel-1.2.1\\python"
+    ]
 }
