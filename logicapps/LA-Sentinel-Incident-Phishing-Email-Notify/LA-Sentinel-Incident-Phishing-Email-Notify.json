@@ -70,34 +70,48 @@
     },
     "actions": {
         "MailMessage_をフィルター": {
-        "runAfter": {},
-        "type": "Query",
-        "inputs": {
-            "from": "@triggerBody()?['object']?['properties']?['relatedEntities']",
-            "where": "@equals(item()?['kind'], 'MailMessage')"
-        }
-    },
-    "メールの送信_(V2)": {
-        "runAfter": {
-            "MailMessage_をフィルター": [
-                "Succeeded"
-            ]
+            "runAfter": {
+                "Delay": [
+                    "Succeeded"
+                ]
+            },
+            "type": "Query",
+            "inputs": {
+                "from": "@triggerBody()?['object']?['properties']?['relatedEntities']",
+                "where": "@equals(item()?['kind'], 'MailMessage')"
+            }
         },
-        "type": "ApiConnection",
+        "メールの送信_(V2)": {
+            "runAfter": {
+                "MailMessage_をフィルター": [
+                    "Succeeded"
+                ]
+            },
+            "type": "ApiConnection",
+            "inputs": {
+                "host": {
+                    "connection": {
+                        "name": "@parameters('$connections')['office365-1']['connectionId']"
+                    }
+                },
+                "method": "post",
+                "body": {
+                    "To": "@parameters('通知メールアドレス')",
+                    "Subject": "【SecOps: @{triggerBody()?['object']?['properties']?['severity']}】インシデント #@{triggerBody()?['object']?['properties']?['providerIncidentId']} - @{triggerBody()?['object']?['properties']?['title']}",
+                    "Body": "<h2 style=\"color: #333333;\">インシデントトリアージ サマリー</h2>\n<table border=\"1\" cellpadding=\"8\" style=\"border-collapse: collapse; width: 100%; font-family: sans-serif; max-width: 800px;\">\n  <tbody><tr style=\"background-color: #f2f2f2;\">\n    <th style=\"text-align: left; width: 30%;\">項目</th>\n    <th style=\"text-align: left;\">内容</th>\n  </tr>\n  <tr>\n    <td><b>Defender XDR インシデント番号</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['providerIncidentId']}</td>\n  </tr>\n  <tr>\n    <td><b>Defender XDR インシデント</b></td>\n    <td>\n      <a href=\"@{concat('https://security.microsoft.com/incident2/', triggerBody()?['object']?['properties']?['providerIncidentId'], '/')}\" style=\"background-color: #6b6b6b; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;\">Defender XDR で詳細を確認する</a>\n    </td>\n  </tr>\n  <tr>\n    <td><b>Sentinel インシデント番号</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['incidentNumber']}</td>\n  </tr>\n  <tr>\n    <td><b>Sentinel インシデント</b></td>\n    <td>\n      <a href=\"@{triggerBody()?['object']?['properties']?['incidentUrl']}\" style=\"background-color: #0078D4; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;\">Microsoft Sentinel で詳細を確認する</a>\n    </td>\n  </tr>\n  <tr>\n    <td><b>タイトル</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['title']}</td>\n  </tr>\n  <tr>\n    <td><b>状態 / 重要度</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['status']} / <span style=\"font-weight: bold; color: #d13438;\">@{triggerBody()?['object']?['properties']?['severity']}</span></td>\n  </tr>\n  <tr>\n    <td><b>Phishing メール 判定</b></td>\n    <td>\n      @{if(equals(triggerBody()?['object']?['properties']?['status'], 'Closed'), '静観してください', '調査してください')}\n    </td>\n  </tr>\n  <tr style=\"background-color: #e6f7ff;\">\n    <td><b>AI 分析リスク評価</b></td>\n    <td>\n      <b>@{if(contains(coalesce(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], ''), 'Classification:</b> '), split(split(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], 'Classification: ')[1], '<br>')[0], 'レポート本文を参照')}</b>\n    </td>\n  </tr>\n</tbody></table>\n\n<br>\n<h3 style=\"color: #005a9e;\">🚨 アラート詳細情報</h3>\n<ul style=\"font-family: sans-serif;\">\n  <li><b>検出ソース:</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['additionalData']?['DetectionSource']}</li>\n  <li><b>攻撃手法(MITRE):</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['additionalData']?['MitreTechniques']}</li>\n  <li><b>アラート説明:</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['description']}</li>\n</ul>\n\n<hr style=\"border: 0; border-top: 1px solid #ccc;\">\n<h3 style=\"color: #005a9e;\">📧 関連メール情報</h3>\n<ul style=\"font-family: sans-serif;\">\n  <li><b>件名:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['subject']}</li>\n  <li><b>送信元:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['p1Sender']}</li>\n  <li><b>送信元IP:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['senderIP']}</li>\n  <li><b>受信者:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['recipient']}</li>\n</ul>\n\n<hr style=\"border: 0; border-top: 1px solid #ccc;\">\n<h3 style=\"color: #005a9e;\">🤖 Security Copilot 分析レポート（詳細）</h3>\n<div style=\"background-color: #f9f9f9; padding: 15px; border-left: 5px solid #005a9e; font-family: sans-serif; line-height: 1.6;\">\n  @{if(equals(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], null), 'コメントなし', replace(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], decodeUriComponent('%0A'), '<br>'))}\n</div>",
+                    "Importance": "Normal"
+                },
+                "path": "/v2/Mail"
+            }
+        },
+        "Delay": {
+        "runAfter": {},
+        "type": "Wait",
         "inputs": {
-            "host": {
-                "connection": {
-                    "name": "@parameters('$connections')['office365']['connectionId']"
-                }
-            },
-            "method": "post",
-            "body": {
-                "To": "@parameters('通知メールアドレス')",
-                "Subject": "【SecOps: @{triggerBody()?['object']?['properties']?['severity']}】インシデント #@{triggerBody()?['object']?['properties']?['providerIncidentId']} - @{triggerBody()?['object']?['properties']?['title']}",
-                "Body": "<h2 style=\"color: #333333;\">インシデントトリアージ サマリー</h2>\n<table border=\"1\" cellpadding=\"8\" style=\"border-collapse: collapse; width: 100%; font-family: sans-serif; max-width: 800px;\">\n  <tbody><tr style=\"background-color: #f2f2f2;\">\n    <th style=\"text-align: left; width: 30%;\">項目</th>\n    <th style=\"text-align: left;\">内容</th>\n  </tr>\n  <tr>\n    <td><b>Defender XDR インシデント番号</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['providerIncidentId']}</td>\n  </tr>\n  <tr>\n    <td><b>Defender XDR インシデント</b></td>\n    <td>\n      <a href=\"@{concat('https://security.microsoft.com/incident2/', triggerBody()?['object']?['properties']?['providerIncidentId'], '/')}\" style=\"background-color: #6b6b6b; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;\">Defender XDR で詳細を確認する</a>\n    </td>\n  </tr>\n  <tr>\n    <td><b>Sentinel インシデント番号</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['incidentNumber']}</td>\n  </tr>\n  <tr>\n    <td><b>Sentinel インシデント</b></td>\n    <td>\n      <a href=\"@{triggerBody()?['object']?['properties']?['incidentUrl']}\" style=\"background-color: #0078D4; color: white; padding: 8px 14px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;\">Microsoft Sentinel で詳細を確認する</a>\n    </td>\n  </tr>\n  <tr>\n    <td><b>タイトル</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['title']}</td>\n  </tr>\n  <tr>\n    <td><b>状態 / 重要度</b></td>\n    <td>@{triggerBody()?['object']?['properties']?['status']} / <span style=\"font-weight: bold; color: #d13438;\">@{triggerBody()?['object']?['properties']?['severity']}</span></td>\n  </tr>\n  <tr>\n    <td><b>Phishing メール 判定</b></td>\n    <td>\n      @{if(equals(triggerBody()?['object']?['properties']?['status'], 'Closed'), '静観してください', '調査してください')}\n    </td>\n  </tr>\n  <tr style=\"background-color: #e6f7ff;\">\n    <td><b>AI 分析リスク評価</b></td>\n    <td>\n      <b>@{if(contains(coalesce(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], ''), 'Classification:</b> '), split(split(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], 'Classification: ')[1], '<br>')[0], 'レポート本文を参照')}</b>\n    </td>\n  </tr>\n</tbody></table>\n\n<br>\n<h3 style=\"color: #005a9e;\">🚨 アラート詳細情報</h3>\n<ul style=\"font-family: sans-serif;\">\n  <li><b>検出ソース:</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['additionalData']?['DetectionSource']}</li>\n  <li><b>攻撃手法(MITRE):</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['additionalData']?['MitreTechniques']}</li>\n  <li><b>アラート説明:</b> @{triggerBody()?['object']?['properties']?['alerts']?[0]?['properties']?['description']}</li>\n</ul>\n\n<hr style=\"border: 0; border-top: 1px solid #ccc;\">\n<h3 style=\"color: #005a9e;\">📧 関連メール情報</h3>\n<ul style=\"font-family: sans-serif;\">\n  <li><b>件名:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['subject']}</li>\n  <li><b>送信元:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['p1Sender']}</li>\n  <li><b>送信元IP:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['senderIP']}</li>\n  <li><b>受信者:</b> @{body('MailMessage_をフィルター')?[0]?['properties']?['recipient']}</li>\n</ul>\n\n<hr style=\"border: 0; border-top: 1px solid #ccc;\">\n<h3 style=\"color: #005a9e;\">🤖 Security Copilot 分析レポート（詳細）</h3>\n<div style=\"background-color: #f9f9f9; padding: 15px; border-left: 5px solid #005a9e; font-family: sans-serif; line-height: 1.6;\">\n  @{if(equals(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], null), 'コメントなし', replace(triggerBody()?['object']?['properties']?['comments']?[0]?['properties']?['message'], decodeUriComponent('%0A'), '<br>'))}\n</div>",
-                "Importance": "Normal"
-            },
-            "path": "/v2/Mail"
+            "interval": {
+                "count": 5,
+                "unit": "Minute"
+            }
         }
     }
 },
@@ -116,7 +130,7 @@
             }
         }
     },
-    "office365": {
+    "office365-1": {
         "connectionId": "[resourceId('Microsoft.Web/connections', variables('Office365ConnectionName'))]",
         "connectionName": "[variables('Office365ConnectionName')]",
         "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/office365')]",
@@ -129,12 +143,12 @@
 "name": "[parameters('PlaybookName')]",
 "type": "Microsoft.Logic/workflows",
 "location": "[resourceGroup().location]",
+"tags": {
+"hidden-SentinelTemplateName": "LA-Sentinel-Incident-Phishing-Email-Notify",
+"hidden-SentinelTemplateVersion": "1.0"
+},
 "identity": {
 "type": "SystemAssigned"
-},
-"tags": {
-"hidden-SentinelTemplateName": "notify-phishing-email",
-"hidden-SentinelTemplateVersion": "1.0"
 },
 "apiVersion": "2017-07-01",
 "dependsOn": [
