@@ -1,0 +1,35 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "functions", "functions", "{46899413-A1AD-7709-F42F-DC74916C2577}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "teams-vuln-function-sample", "teams-vuln-function-sample", "{6B5183CD-FC1B-B84A-A1AD-B856AC15206B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{27AC8955-896F-36A7-FFE9-F043C996E49A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeamsVulnerabilityNotifier", "functions\teams-vuln-function-sample\src\TeamsVulnerabilityNotifier.csproj", "{79A51357-EB21-3CA5-EB00-F3CF810E61C8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79A51357-EB21-3CA5-EB00-F3CF810E61C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79A51357-EB21-3CA5-EB00-F3CF810E61C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79A51357-EB21-3CA5-EB00-F3CF810E61C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79A51357-EB21-3CA5-EB00-F3CF810E61C8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{6B5183CD-FC1B-B84A-A1AD-B856AC15206B} = {46899413-A1AD-7709-F42F-DC74916C2577}
+		{27AC8955-896F-36A7-FFE9-F043C996E49A} = {6B5183CD-FC1B-B84A-A1AD-B856AC15206B}
+		{79A51357-EB21-3CA5-EB00-F3CF810E61C8} = {27AC8955-896F-36A7-FFE9-F043C996E49A}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A7FD6BF-B526-4638-A237-60EE17E5CE69}
+	EndGlobalSection
+EndGlobal

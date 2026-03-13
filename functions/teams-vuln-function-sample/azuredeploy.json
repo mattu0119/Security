@@ -1,0 +1,353 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "japaneast",
+      "metadata": {
+        "description": "Deployment location."
+      }
+    },
+    "functionPlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Azure Functions Flex Consumption plan."
+      }
+    },
+    "functionAppName": {
+      "type": "string",
+      "metadata": {
+        "description": "Globally unique name of the Function App."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 24,
+      "metadata": {
+        "description": "Globally unique storage account name (lowercase letters and numbers only)."
+      }
+    },
+    "deploymentContainerName": {
+      "type": "string",
+      "defaultValue": "function-releases",
+      "metadata": {
+        "description": "Blob container used by Flex Consumption deployment storage."
+      }
+    },
+    "logAnalyticsName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace."
+      }
+    },
+    "applicationInsightsName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Application Insights component."
+      }
+    },
+    "functionAppRuntime": {
+      "type": "string",
+      "defaultValue": "dotnet-isolated",
+      "allowedValues": [
+        "dotnet-isolated",
+        "node",
+        "python",
+        "java",
+        "powershell"
+      ],
+      "metadata": {
+        "description": "Functions runtime name."
+      }
+    },
+    "functionAppRuntimeVersion": {
+      "type": "string",
+      "defaultValue": "8.0",
+      "metadata": {
+        "description": "Functions runtime version. Example: 8.0 for .NET isolated, 20 for Node.js, 3.11 for Python."
+      }
+    },
+    "maximumInstanceCount": {
+      "type": "int",
+      "defaultValue": 20,
+      "minValue": 1,
+      "metadata": {
+        "description": "Maximum number of Flex Consumption instances."
+      }
+    },
+    "instanceMemoryMB": {
+      "type": "int",
+      "defaultValue": 2048,
+      "allowedValues": [
+        512,
+        2048,
+        4096
+      ],
+      "metadata": {
+        "description": "Memory allocated per Flex Consumption instance."
+      }
+    },
+    "httpPerInstanceConcurrency": {
+      "type": "int",
+      "defaultValue": 10,
+      "minValue": 1,
+      "metadata": {
+        "description": "Maximum concurrent HTTP trigger invocations per instance."
+      }
+    },
+    "teamsGraphBaseUrl": {
+      "type": "string",
+      "defaultValue": "https://graph.microsoft.com/v1.0",
+      "metadata": {
+        "description": "Microsoft Graph base URL used by the function code."
+      }
+    },
+    "defaultTeamId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional default Teams Team ID. Can be left empty if your API request includes teamId."
+      }
+    },
+    "defaultAdminUpns": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional comma-separated UPNs for admin notifications."
+      }
+    },
+    "enableAppServiceLogs": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable application logging to the App Service file system."
+      }
+    }
+  },
+  "variables": {
+    "storageApiVersion": "2023-05-01",
+    "webApiVersion": "2025-03-01",
+    "insightsApiVersion": "2020-02-02",
+    "logAnalyticsApiVersion": "2023-09-01",
+    "serverFarmsApiVersion": "2024-04-01",
+    "deploymentStorageConnectionStringSettingName": "DEPLOYMENT_STORAGE_CONNECTION_STRING",
+    "functionPackageContainerUrl": "[format('https://{0}.blob.core.windows.net/{1}', parameters('storageAccountName'), parameters('deploymentContainerName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "allowSharedKeyAccess": true
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "[variables('storageApiVersion')]",
+      "name": "[format('{0}/default/{1}', parameters('storageAccountName'), parameters('deploymentContainerName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "[variables('logAnalyticsApiVersion')]",
+      "name": "[parameters('logAnalyticsName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30,
+        "features": {
+          "searchVersion": 1
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "[variables('insightsApiVersion')]",
+      "name": "[parameters('applicationInsightsName')]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsName'))]"
+      ],
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsName'))]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "[variables('serverFarmsApiVersion')]",
+      "name": "[parameters('functionPlanName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "FC1",
+        "tier": "FlexConsumption"
+      },
+      "kind": "functionapp,linux",
+      "properties": {
+        "reserved": true
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "[variables('webApiVersion')]",
+      "name": "[parameters('functionAppName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp,linux",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', parameters('storageAccountName'), 'default', parameters('deploymentContainerName'))]",
+        "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
+        "[resourceId('Microsoft.Web/serverfarms', parameters('functionPlanName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionPlanName'))]",
+        "httpsOnly": true,
+        "publicNetworkAccess": "Enabled",
+        "reserved": true,
+        "siteConfig": {
+          "minTlsVersion": "1.2",
+          "ftpsState": "Disabled",
+          "appSettings": [
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), variables('storageApiVersion')).keys[0].value, environment().suffixes.storage)]"
+            },
+            {
+              "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), variables('insightsApiVersion')).ConnectionString]"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), variables('insightsApiVersion')).InstrumentationKey]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "0"
+            },
+            {
+              "name": "[variables('deploymentStorageConnectionStringSettingName')]",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix={2}', parameters('storageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), variables('storageApiVersion')).keys[0].value, environment().suffixes.storage)]"
+            },
+            {
+              "name": "GRAPH_BASE_URL",
+              "value": "[parameters('teamsGraphBaseUrl')]"
+            },
+            {
+              "name": "DEFAULT_TEAM_ID",
+              "value": "[parameters('defaultTeamId')]"
+            },
+            {
+              "name": "DEFAULT_ADMIN_UPNS",
+              "value": "[parameters('defaultAdminUpns')]"
+            },
+            {
+              "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+              "value": "true"
+            }
+          ]
+        },
+        "functionAppConfig": {
+          "runtime": {
+            "name": "[parameters('functionAppRuntime')]",
+            "version": "[parameters('functionAppRuntimeVersion')]"
+          },
+          "deployment": {
+            "storage": {
+              "type": "blobContainer",
+              "value": "[variables('functionPackageContainerUrl')]",
+              "authentication": {
+                "type": "StorageAccountConnectionString",
+                "storageAccountConnectionStringName": "[variables('deploymentStorageConnectionStringSettingName')]"
+              }
+            }
+          },
+          "scaleAndConcurrency": {
+            "maximumInstanceCount": "[parameters('maximumInstanceCount')]",
+            "instanceMemoryMB": "[parameters('instanceMemoryMB')]",
+            "triggers": {
+              "http": {
+                "perInstanceConcurrency": "[parameters('httpPerInstanceConcurrency')]"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2022-09-01",
+      "name": "[format('{0}/logs', parameters('functionAppName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ],
+      "properties": {
+        "applicationLogs": {
+          "fileSystem": {
+            "level": "[if(parameters('enableAppServiceLogs'), 'Information', 'Off')]"
+          }
+        },
+        "httpLogs": {
+          "fileSystem": {
+            "enabled": "[parameters('enableAppServiceLogs')]",
+            "retentionInDays": 7,
+            "retentionInMb": 35
+          }
+        },
+        "detailedErrorMessages": {
+          "enabled": "[parameters('enableAppServiceLogs')]"
+        },
+        "failedRequestsTracing": {
+          "enabled": "[parameters('enableAppServiceLogs')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "functionAppName": {
+      "type": "string",
+      "value": "[parameters('functionAppName')]"
+    },
+    "functionDefaultHostname": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), variables('webApiVersion')).defaultHostName]"
+    },
+    "functionPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Web/sites', parameters('functionAppName')), variables('webApiVersion'), 'Full').identity.principalId]"
+    },
+    "deploymentContainerUrl": {
+      "type": "string",
+      "value": "[variables('functionPackageContainerUrl')]"
+    },
+    "applicationInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Insights/components', parameters('applicationInsightsName')), variables('insightsApiVersion')).ConnectionString]"
+    }
+  }
+}

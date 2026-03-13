@@ -48,6 +48,10 @@
         {
           "name": "Microsoft Security Experts Blog",
           "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=MicrosoftSecurityExpertsBlog"
+        },
+        {
+          "name": "Security Copilot Blog",
+          "url": "https://techcommunity.microsoft.com/t5/s/gxcuf89792/rss/board?board.id=SecurityCopilotBlog"
         }
       ]
     },

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus2"
+    },
+    "functionPlanName": {
+      "value": "func-teams-vuln-plan"
+    },
+    "functionAppName": {
+      "value": "func-teams-vuln-demo"
+    },
+    "storageAccountName": {
+      "value": "functeamsvulndemo01"
+    },
+    "deploymentContainerName": {
+      "value": "function-releases"
+    },
+    "logAnalyticsName": {
+      "value": "func-teams-vuln-law"
+    },
+    "applicationInsightsName": {
+      "value": "func-teams-vuln-ai"
+    },
+    "functionAppRuntime": {
+      "value": "dotnet-isolated"
+    },
+    "functionAppRuntimeVersion": {
+      "value": "8.0"
+    },
+    "maximumInstanceCount": {
+      "value": 20
+    },
+    "instanceMemoryMB": {
+      "value": 2048
+    },
+    "httpPerInstanceConcurrency": {
+      "value": 10
+    },
+    "teamsGraphBaseUrl": {
+      "value": "https://graph.microsoft.com/v1.0"
+    },
+    "defaultTeamId": {
+      "value": ""
+    },
+    "defaultAdminUpns": {
+      "value": "secadmin@contoso.com,owner1@contoso.com"
+    },
+    "enableAppServiceLogs": {
+      "value": true
+    }
+  }
+}
